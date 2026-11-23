@@ -63,6 +63,19 @@ drop policy if exists "solo la coppia" on public.tickets;
 create policy "solo la coppia" on public.tickets
   for all to authenticated using (public.is_coppia()) with check (public.is_coppia());
 
+-- 3b. Itinerario e altre info del viaggio (i contenuti si inseriscono a parte,
+--     così non finiscono nel repository pubblico)
+create table if not exists public.trip_info (
+  key        text primary key,
+  data       jsonb not null,
+  updated_at timestamptz not null default now()
+);
+grant select, insert, update, delete on public.trip_info to authenticated;
+alter table public.trip_info enable row level security;
+drop policy if exists "solo la coppia" on public.trip_info;
+create policy "solo la coppia" on public.trip_info
+  for all to authenticated using (public.is_coppia()) with check (public.is_coppia());
+
 -- 4. Aggiornamenti in tempo reale -------------------------------------------------
 do $$ begin
   alter publication supabase_realtime add table public.items;
