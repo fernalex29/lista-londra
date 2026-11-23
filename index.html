@@ -138,6 +138,7 @@ img { max-width: 100%; }
 .pill { font-size: .78rem; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); background: var(--surface); }
 .pill.money { color: var(--done); border-color: currentColor; }
 .pill.booked { color: var(--red); border-color: currentColor; }
+.pill.todo { background: var(--warn); border-color: var(--warn-line); color: var(--fg); }
 .tl { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .tl-row { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px; }
 .tl-row + .tl-row { border-top: 1px solid var(--line); }
@@ -154,6 +155,10 @@ img { max-width: 100%; }
 .tag.free { background: var(--food); color: var(--done); }
 .tag.booked { color: var(--red); border: 1px solid currentColor; }
 .tag.xmas { background: var(--red); color: #fff; }
+.tag.todo { background: var(--warn); color: var(--fg); border: 1px solid var(--warn-line); }
+.tixbtn { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; border: 0; border-radius: 99px; padding: 7px 12px; font: 600 .84rem var(--font-body); text-decoration: none; cursor: pointer; background: var(--red); color: #fff; }
+.tixbtn.add { background: transparent; color: var(--red); border: 1.5px dashed currentColor; padding: 5px 11px; }
+.tl-row.home .tixbtn.add { color: #fff; }
 .callout { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: .9rem; }
 .callout.warn { background: var(--warn); border-color: var(--warn-line); }
 details.guard { margin-top: 8px; font-size: .86rem; }
@@ -544,16 +549,19 @@ async function loadTickets() {
 }
 
 $("tSearch").addEventListener("input", e => { tQuery = e.target.value; renderTickets(); });
-$("tPick").onclick = () => $("tFileInput").click();
+let prefill = null;   // dati della tappa quando si carica dall'itinerario
+function startUpload(p) { prefill = p || null; setTab("biglietti"); $("tFileInput").click(); }
+$("tPick").onclick = () => startUpload(null);
 $("tFileInput").addEventListener("change", e => {
   const f = e.target.files && e.target.files[0]; e.target.value = "";
-  if (!f) return;
+  if (!f) { prefill = null; return; }
   if (!OK_TYPES.includes(f.type)) { setStatus("Formato non supportato. Usa una foto JPG/PNG, uno screenshot o un PDF.", true); return; }
   if (f.size > 20 * 1024 * 1024) { setStatus("Il file è troppo grande (massimo 20 MB).", true); return; }
   pendingFile = f; setStatus("");
   $("tFile").textContent = "File: " + f.name;
-  $("tName").value = f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").slice(0, 120);
-  $("tDate").value = ""; $("tTime").value = ""; $("tNote").value = "";
+  $("tName").value = prefill ? prefill.name : f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").slice(0, 120);
+  $("tDate").value = prefill ? prefill.date : ""; $("tTime").value = prefill ? prefill.time : ""; $("tNote").value = "";
+  prefill = null;
   $("ticketForm").hidden = false; $("tName").focus(); $("tName").select();
 });
 $("tCancel").onclick = () => { pendingFile = null; $("ticketForm").hidden = true; };
@@ -590,7 +598,28 @@ try { itinDay = localStorage.getItem("itinDay"); } catch (e) {}
 
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function extLink(url, text) { const a = el("a", "", text || url); a.href = "https://" + url.replace(/^https?:\/\//, ""); a.target = "_blank"; a.rel = "noopener"; return a; }
-const TAGS = { "gratis": "free", "ingresso libero": "free", "prenotato": "booked", "mercatino": "xmas", "Natale": "xmas" };
+const TAGS = { "gratis": "free", "ingresso libero": "free", "prenotato": "booked", "da prenotare": "todo", "mercatino": "xmas", "Natale": "xmas" };
+
+// Trova il biglietto caricato per una tappa: nome che contiene una delle parole chiave,
+// preferendo quello con la stessa data del giorno.
+function ticketFor(keys, date) {
+  const ks = (Array.isArray(keys) ? keys : [keys]).map(norm);
+  const hits = tickets.filter(t => ks.some(k => norm(t.name + " " + (t.file_name || "")).includes(k)));
+  return hits.find(t => t.date === date) || hits.find(t => !t.date) || hits[0] || null;
+}
+
+function ticketButton(r, d) {
+  const t = ticketFor(r.ticket, d.date);
+  if (t) {
+    const a = el("a", "tixbtn", "🎟 Biglietto");
+    a.href = signed[t.path] ? signed[t.path].url : "#"; a.target = "_blank"; a.rel = "noopener";
+    a.setAttribute("aria-label", "Apri il biglietto: " + t.name);
+    return a;
+  }
+  const b = el("button", "tixbtn add", "+ Carica biglietto"); b.type = "button";
+  b.onclick = () => startUpload({ name: r.ticketName || r.title, date: d.date, time: r.time });
+  return b;
+}
 
 async function loadItin() {
   const { data, error } = await sb.from("trip_info").select("data").eq("key", "itinerario").maybeSingle();
@@ -652,6 +681,7 @@ function renderDay(box, d) {
     for (const t of r.tags || []) title.appendChild(el("span", "tag " + (TAGS[t] || "free"), t));
     main.appendChild(title);
     if (r.desc) main.appendChild(el("div", "tl-desc", r.desc));
+    if (r.ticket) main.appendChild(ticketButton(r, d));
     if (r.guard && itin.guard) main.appendChild(guardDetails(itin.guard));
     li.append(el("div", "tl-time", r.time), main, el("div", "tl-cost", r.cost && r.cost !== "—" ? r.cost : ""));
     ul.appendChild(li);
