@@ -3,34 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1b2a5c">
+<meta name="theme-color" content="#8c1022">
 <title>Lista Londra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&display=swap">
 <style>
-/* Layout: una colonna stretta da telefono, testata "biglietto" in alto, due schede (lista / biglietti), barra d'azione fissata in basso */
+/* Layout: sfondo rosso natalizio con la neve che scende (canvas dietro), schede bianche sopra,
+   testata "biglietto" bianca, tre schede (lista / itinerario / biglietti), barra d'azione bianca in basso.
+   Un solo aspetto voluto, uguale in tema chiaro e scuro. */
 :root {
-  --bg: #f3f4f7; --surface: #ffffff; --fg: #141a2b; --muted: #5d6478; --line: #dde0e8;
-  --red: #c8102e; --navy: #1b2a5c; --navy-fg: #ffffff; --done: #1f7a4d; --chip: #e8eaf1;
-  --food: #e9f5ee; --xmas: #fdeef0; --warn: #fff6dd; --warn-line: #f0d98a;
+  --bg: #8c1022; --bg-deep: #5c0815;           /* rosso Natale, più scuro in basso */
+  --on-bg: #ffffff; --on-bg-muted: rgba(255,255,255,.78); --on-bg-soft: rgba(255,255,255,.16);
+  --surface: #ffffff; --fg: #2b0d12; --muted: #7d5b61; --line: #f0dfe2;
+  --red: #c8102e; --navy: #5c0815; --navy-fg: #ffffff; --done: #1d7a4b; --chip: #f6e9eb;
+  --food: #eaf6ee; --xmas: #fdeef0; --warn: #fff6dd; --warn-line: #efd486; --gold: #f4c95d;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1220; --surface: #171c2e; --fg: #eef0f6; --muted: #9aa1b6; --line: #2a3150;
-    --red: #ff4d5e; --navy: #26386f; --navy-fg: #ffffff; --done: #4cc58a; --chip: #232a44;
-    --food: #142a20; --xmas: #2d1820; --warn: #2e2712; --warn-line: #5c4c1c;
-    color-scheme: dark;
-  }
-}
+html { background: var(--bg-deep); }
+#snow { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0; background: var(--bg); color: var(--fg);
+  margin: 0; color: var(--fg); min-height: 100vh;
+  background: radial-gradient(120% 70% at 50% 0%, #b3182e 0%, var(--bg) 45%, var(--bg-deep) 100%) fixed, var(--bg);
   font-family: var(--font-body); font-size: 16px; line-height: 1.45;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -38,37 +37,40 @@ body {
   padding-bottom: 120px;
 }
 img { max-width: 100%; }
-.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 1; }
 .view { display: flex; flex-direction: column; gap: 16px; }
 
-.ticket { background: var(--navy); color: var(--navy-fg); border-radius: 14px; padding: 18px 18px 16px; position: relative; overflow: hidden; }
-.ticket::after { content: ""; position: absolute; left: 0; right: 0; bottom: 52px; border-top: 2px dashed rgba(255,255,255,.28); }
-.route { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); }
-.route .code { font-size: 2rem; font-weight: 800; letter-spacing: .02em; }
-.route .arrow { color: var(--red); font-weight: 800; font-size: 1.4rem; }
-.route-sub { font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; opacity: .75; margin-top: 2px; }
+/* Testata: biglietto bianco con perforazione e fiocco */
+.ticket { background: var(--surface); color: var(--fg); border-radius: 16px; padding: 18px 18px 16px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(40,0,8,.35); }
+.ticket::after { content: ""; position: absolute; left: 0; right: 0; bottom: 52px; border-top: 2px dashed var(--line); }
+.ticket::before { content: "❄"; position: absolute; right: -6px; top: -18px; font-size: 6.5rem; line-height: 1; color: var(--red); opacity: .08; }
+.route { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); color: var(--red); }
+.route .code { font-size: 2.1rem; font-weight: 800; letter-spacing: .02em; }
+.route .arrow { color: var(--gold); font-weight: 800; font-size: 1.4rem; -webkit-text-stroke: .5px #c99a2a; }
+.route-sub { font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-top: 2px; }
 .progress-row { display: flex; align-items: center; gap: 12px; margin-top: 30px; font-variant-numeric: tabular-nums; }
-.bar { flex: 1; height: 8px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
-.bar > span { display: block; height: 100%; width: 0; background: var(--red); border-radius: 99px; transition: width .35s ease; }
-.count { font-family: var(--font-display); font-weight: 700; font-size: .95rem; white-space: nowrap; }
+.bar { flex: 1; height: 8px; border-radius: 99px; background: var(--chip); overflow: hidden; }
+.bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--red), #e2475c); border-radius: 99px; transition: width .35s ease; }
+.count { font-family: var(--font-display); font-weight: 700; font-size: .95rem; white-space: nowrap; color: var(--red); }
 
-.tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; background: var(--chip); padding: 4px; border-radius: 12px; }
-.tab { border: 0; background: transparent; color: var(--muted); border-radius: 9px; padding: 10px 8px; font: 600 .95rem var(--font-body); cursor: pointer; font-variant-numeric: tabular-nums; }
-.tab[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.tab .n { color: var(--muted); font-weight: 500; margin-left: 4px; }
+/* Schede e filtri stanno direttamente sul rosso: testo bianco, vetro leggero */
+.tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; background: var(--on-bg-soft); padding: 4px; border-radius: 12px; backdrop-filter: blur(4px); }
+.tab { border: 0; background: transparent; color: var(--on-bg); border-radius: 9px; padding: 10px 6px; font: 600 .95rem var(--font-body); cursor: pointer; font-variant-numeric: tabular-nums; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--red); box-shadow: 0 2px 8px rgba(40,0,8,.25); }
+.tab .n { opacity: .7; font-weight: 500; margin-left: 4px; }
 
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; margin: 0 -2px; padding-inline: 2px; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { flex: none; border: 0; border-radius: 99px; padding: 8px 14px; background: var(--chip); color: var(--fg); font: 500 .9rem var(--font-body); cursor: pointer; }
-.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
-.chip .n { opacity: .6; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.chip { flex: none; border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 8px 14px; background: var(--on-bg-soft); color: var(--on-bg); font: 500 .9rem var(--font-body); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--surface); color: var(--red); border-color: var(--surface); font-weight: 600; }
+.chip .n { opacity: .65; margin-left: 4px; font-variant-numeric: tabular-nums; }
 
-.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .88rem; color: var(--muted); }
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .88rem; color: var(--on-bg-muted); }
 .toolbar label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.toolbar input { width: 18px; height: 18px; accent-color: var(--red); }
+.toolbar input { width: 18px; height: 18px; accent-color: var(--gold); }
 
 .group { display: flex; flex-direction: column; gap: 6px; }
-.group h2 { font-family: var(--font-display); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 8px 2px 2px; }
+.group h2 { font-family: var(--font-display); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--on-bg-muted); margin: 8px 2px 2px; }
 .list { list-style: none; margin: 0; padding: 0; background: var(--surface); border-radius: 12px; border: 1px solid var(--line); }
 .item { display: flex; align-items: center; gap: 12px; padding: 12px 10px 12px 14px; min-height: 56px; }
 .item + .item { border-top: 1px solid var(--line); }
@@ -124,7 +126,7 @@ img { max-width: 100%; }
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .addbar form, .addbar .tbar { max-width: 560px; margin: 0 auto; display: flex; gap: 8px; }
 .addbar select, .addbar input[type="text"] { font: 16px var(--font-body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
-.addbar select { flex: none; width: 108px; }
+.addbar select { flex: none; width: 128px; }
 .addbar input[type="text"] { flex: 1; min-width: 0; }
 .addbar form button { flex: none; width: 46px; border: 0; border-radius: 10px; background: var(--red); color: #fff; font-size: 1.5rem; cursor: pointer; }
 .addbar button:disabled { opacity: .45; cursor: default; }
@@ -185,11 +187,22 @@ details.guard summary { cursor: pointer; color: var(--red); font-weight: 600; }
 .rules { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: .92rem; }
 .small { font-size: .8rem; color: var(--muted); margin: 0; }
 
-:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+/* Testi che stanno direttamente sullo sfondo rosso */
+.status, .linkbtn, .daytix { color: var(--on-bg-muted); }
+.status.err { color: var(--on-bg); background: rgba(0,0,0,.25); border-radius: 10px; padding: 8px 12px; }
+.daylabel { color: var(--gold); }
+.dayhead h2, .info h3 { color: var(--on-bg); }
+.info > .small, .info section > .small, .rules { color: var(--on-bg-muted); }
+.rules strong { color: var(--on-bg); }
+.list, .tl, .rowlist, .tcard, .tform, .card, .empty, .callout, .kv, .search { box-shadow: 0 6px 18px rgba(40,0,8,.18); }
+.empty { border-style: solid; }
+
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
+<canvas id="snow" aria-hidden="true"></canvas>
 <div class="wrap">
   <header class="ticket">
     <div class="route"><span class="code">ITA</span><span class="arrow">→</span><span class="code">LON</span></div>
@@ -281,6 +294,52 @@ details.guard summary { cursor: pointer; color: var(--red); font-weight: 600; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>
+/* Neve che scende: fiocchi leggeri su canvas, ferma se l'utente preferisce meno animazioni */
+(function () {
+  const cv = document.getElementById("snow"), ctx = cv.getContext && cv.getContext("2d");
+  if (!ctx) return;
+  const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W = 0, H = 0, flakes = [];
+  function size() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round(Math.min(110, W * H / 9000));
+    while (flakes.length < n) flakes.push(make(true));
+    flakes.length = n;
+    if (still) draw();
+  }
+  function make(anywhere) {
+    const r = Math.random() * 2.6 + .8;
+    return { x: Math.random() * W, y: anywhere ? Math.random() * H : -6, r,
+             vy: .35 + r * .32, vx: (Math.random() - .5) * .3, ph: Math.random() * 6.28, a: .45 + Math.random() * .5 };
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const f of flakes) {
+      ctx.globalAlpha = f.a; ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  let last = 0;
+  function tick(t) {
+    const dt = Math.min(48, t - last || 16) / 16; last = t;
+    for (const f of flakes) {
+      f.ph += .012 * dt;
+      f.y += f.vy * dt; f.x += (f.vx + Math.sin(f.ph) * .35) * dt;
+      if (f.y > H + 6) Object.assign(f, make(false));
+      if (f.x < -6) f.x = W + 6; else if (f.x > W + 6) f.x = -6;
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+  addEventListener("resize", size);
+  size();
+  if (!still) requestAnimationFrame(tick);
+})();
+</script>
+<script>
 const CATS = [
   { id: "prima", label: "Prima di partire" },
   { id: "valigia", label: "Valigia" },
@@ -313,7 +372,33 @@ const signed = {};        // path -> { url, exp }
 
 try { hideDone = localStorage.getItem("hideDone") === "1"; filter = localStorage.getItem("filter") || "tutte"; } catch (e) {}
 $("hideDone").checked = hideDone;
-for (const c of CATS) { const o = document.createElement("option"); o.value = c.id; o.textContent = c.label; $("addCat").appendChild(o); }
+
+/* Sezioni della lista: la valigia è divisa per persona (nomi presi dal database, non dal codice) */
+let people = [];          // [{ id, name }]
+function sections() {
+  const s = [{ id: "prima", label: "Prima di partire", cat: "prima", owner: null }];
+  for (const p of people) s.push({ id: "valigia:" + p.id, label: "Valigia di " + p.name, cat: "valigia", owner: p.id });
+  s.push({ id: "valigia", label: people.length ? "Valigia in comune" : "Valigia", cat: "valigia", owner: null });
+  for (const c of CATS) if (c.id !== "prima" && c.id !== "valigia") s.push({ id: c.id, label: c.label, cat: c.id, owner: null });
+  return s;
+}
+function sectionOf(i) {
+  if (i.cat === "valigia") return i.owner && people.some(p => p.id === i.owner) ? "valigia:" + i.owner : "valigia";
+  return CATS.some(c => c.id === i.cat) ? i.cat : "altro";
+}
+function fillAddCat() {
+  const sel = $("addCat"), cur = sel.value; sel.textContent = "";
+  const all = sections();
+  for (const s of all) { const o = document.createElement("option"); o.value = s.id; o.textContent = s.label; sel.appendChild(o); }
+  sel.value = all.some(s => s.id === cur) ? cur : "prima";
+}
+fillAddCat();
+async function loadPeople() {
+  const { data, error } = await sb.from("trip_info").select("data").eq("key", "persone").maybeSingle();
+  if (error) console.error(error);
+  people = data && Array.isArray(data.data.list) ? data.data.list : [];
+  fillAddCat(); render();
+}
 
 function setStatus(msg, err) { const s = $("status"); s.textContent = msg || ""; s.hidden = !msg; s.classList.toggle("err", !!err); }
 function show(view) {
@@ -349,8 +434,8 @@ const who = (id, name) => id && me && id === me.id ? "te" : (name || "");
 
 function renderChips() {
   const chips = $("chips"); chips.textContent = "";
-  for (const c of [{ id: "tutte", label: "Tutte" }, ...CATS]) {
-    const n = c.id === "tutte" ? items.length : items.filter(i => i.cat === c.id).length;
+  for (const c of [{ id: "tutte", label: "Tutte" }, ...sections()]) {
+    const n = c.id === "tutte" ? items.length : items.filter(i => sectionOf(i) === c.id).length;
     if (c.id !== "tutte" && n === 0 && filter !== c.id) continue;
     const b = document.createElement("button"); b.className = "chip"; b.type = "button";
     b.setAttribute("aria-pressed", String(filter === c.id)); b.append(c.label);
@@ -367,7 +452,8 @@ function render() {
   $("nLista").textContent = items.length || "";
   renderChips();
   const list = $("list"); list.textContent = "";
-  let shown = items.filter(i => filter === "tutte" || i.cat === filter);
+  if (filter !== "tutte" && !sections().some(s => s.id === filter)) filter = "tutte";
+  let shown = items.filter(i => filter === "tutte" || sectionOf(i) === filter);
   if (hideDone) shown = shown.filter(i => !i.done);
 
   if (!items.length) {
@@ -381,8 +467,8 @@ function render() {
     e.innerHTML = hideDone ? "<strong>Tutto fatto qui 🎉</strong><span>Togli “Nascondi le cose fatte” per rivederle.</span>" : "<strong>Niente in questa categoria</strong>";
     list.appendChild(e); return;
   }
-  for (const c of CATS) {
-    const rows = shown.filter(i => (CATS.some(x => x.id === i.cat) ? i.cat : "altro") === c.id);
+  for (const c of sections()) {
+    const rows = shown.filter(i => sectionOf(i) === c.id);
     if (!rows.length) continue;
     const sec = document.createElement("section"); sec.className = "group";
     if (filter === "tutte") { const h = document.createElement("h2"); h.textContent = c.label; sec.appendChild(h); }
@@ -462,7 +548,8 @@ $("addForm").addEventListener("submit", async ev => {
   const input = $("addText"); const text = input.value.trim().slice(0, 200);
   if (!text) return;
   input.value = ""; input.focus();
-  const { error } = await sb.from("items").insert({ text, cat: $("addCat").value, added_by_name: me.name });
+  const sec = sections().find(s => s.id === $("addCat").value) || sections()[0];
+  const { error } = await sb.from("items").insert({ text, cat: sec.cat, owner: sec.owner, added_by_name: me.name });
   if (error) { input.value = text; failed(error); } else { setStatus(""); loadItems(); }
 });
 $("hideDone").addEventListener("change", e => { hideDone = e.target.checked; try { localStorage.setItem("hideDone", hideDone ? "1" : "0"); } catch (x) {} render(); });
@@ -798,7 +885,7 @@ function enter(user) {
   if (!nome) { show("nameView"); $("nName").focus(); return; }
   me = { id: user.id, name: nome };
   show("appView"); setStatus("");
-  loadItems(); loadTickets(); loadItin();
+  loadPeople(); loadItems(); loadTickets(); loadItin();
   if (!channel) {
     channel = sb.channel("londra")
       .on("postgres_changes", { event: "*", schema: "public", table: "items" }, () => refresh("items"))
@@ -808,7 +895,7 @@ function enter(user) {
 }
 
 function leave() {
-  me = null; items = []; tickets = []; itin = null; itinLoaded = false;
+  me = null; items = []; tickets = []; itin = null; itinLoaded = false; people = []; fillAddCat();
   if (channel) { sb.removeChannel(channel); channel = null; }
   render(); renderTickets(); show("loginView");
 }

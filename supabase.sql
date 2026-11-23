@@ -29,8 +29,10 @@ create table if not exists public.items (
   done_by_name  text,
   added_by      uuid default auth.uid(),
   added_by_name text,
+  owner         uuid,          -- per la valigia: di chi è la voce (vuoto = in comune)
   created_at    timestamptz not null default now()
 );
+alter table public.items add column if not exists owner uuid;
 
 -- 3. Biglietti ------------------------------------------------------------------
 create table if not exists public.tickets (
