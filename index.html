@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b2a5c">
+<title>Lista Londra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: una colonna stretta da telefono, testata "biglietto" in alto, due schede (lista / biglietti), barra d'azione fissata in basso */
+:root {
+  --bg: #f3f4f7; --surface: #ffffff; --fg: #141a2b; --muted: #5d6478; --line: #dde0e8;
+  --red: #c8102e; --navy: #1b2a5c; --navy-fg: #ffffff; --done: #1f7a4d; --chip: #e8eaf1;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1220; --surface: #171c2e; --fg: #eef0f6; --muted: #9aa1b6; --line: #2a3150;
+    --red: #ff4d5e; --navy: #26386f; --navy-fg: #ffffff; --done: #4cc58a; --chip: #232a44;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  padding-bottom: 120px;
+}
+img { max-width: 100%; }
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.view { display: flex; flex-direction: column; gap: 16px; }
+
+.ticket { background: var(--navy); color: var(--navy-fg); border-radius: 14px; padding: 18px 18px 16px; position: relative; overflow: hidden; }
+.ticket::after { content: ""; position: absolute; left: 0; right: 0; bottom: 52px; border-top: 2px dashed rgba(255,255,255,.28); }
+.route { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); }
+.route .code { font-size: 2rem; font-weight: 800; letter-spacing: .02em; }
+.route .arrow { color: var(--red); font-weight: 800; font-size: 1.4rem; }
+.route-sub { font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; opacity: .75; margin-top: 2px; }
+.progress-row { display: flex; align-items: center; gap: 12px; margin-top: 30px; font-variant-numeric: tabular-nums; }
+.bar { flex: 1; height: 8px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
+.bar > span { display: block; height: 100%; width: 0; background: var(--red); border-radius: 99px; transition: width .35s ease; }
+.count { font-family: var(--font-display); font-weight: 700; font-size: .95rem; white-space: nowrap; }
+
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--chip); padding: 4px; border-radius: 12px; }
+.tab { border: 0; background: transparent; color: var(--muted); border-radius: 9px; padding: 10px 8px; font: 600 .95rem var(--font-body); cursor: pointer; font-variant-numeric: tabular-nums; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.tab .n { color: var(--muted); font-weight: 500; margin-left: 4px; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; margin: 0 -2px; padding-inline: 2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 0; border-radius: 99px; padding: 8px 14px; background: var(--chip); color: var(--fg); font: 500 .9rem var(--font-body); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.chip .n { opacity: .6; margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .88rem; color: var(--muted); }
+.toolbar label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.toolbar input { width: 18px; height: 18px; accent-color: var(--red); }
+
+.group { display: flex; flex-direction: column; gap: 6px; }
+.group h2 { font-family: var(--font-display); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 8px 2px 2px; }
+.list { list-style: none; margin: 0; padding: 0; background: var(--surface); border-radius: 12px; border: 1px solid var(--line); }
+.item { display: flex; align-items: center; gap: 12px; padding: 12px 10px 12px 14px; min-height: 56px; }
+.item + .item { border-top: 1px solid var(--line); }
+.check { flex: none; width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--muted); background: transparent; display: grid; place-items: center; cursor: pointer; padding: 0; transition: background .15s, border-color .15s; }
+.check svg { width: 16px; height: 16px; opacity: 0; transform: scale(.6); transition: .15s; }
+.item.done .check { background: var(--done); border-color: var(--done); }
+.item.done .check svg { opacity: 1; transform: none; }
+.body { flex: 1; min-width: 0; cursor: pointer; }
+.text { overflow-wrap: anywhere; }
+.item.done .text { color: var(--muted); text-decoration: line-through; }
+.meta { font-size: .76rem; color: var(--muted); margin-top: 2px; }
+.del { flex: none; border: 0; background: transparent; color: var(--muted); width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 1.3rem; line-height: 1; }
+.del:hover { background: var(--chip); color: var(--red); }
+.del.confirm { width: auto; padding: 0 10px; font: 600 .82rem var(--font-body); background: var(--red); color: #fff; }
+
+.empty, .card { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 22px 18px; color: var(--muted); display: flex; flex-direction: column; gap: 12px; }
+.card { border-style: solid; }
+.empty strong, .card strong { color: var(--fg); font-family: var(--font-display); font-size: 1.05rem; }
+.btn { border: 0; border-radius: 10px; padding: 11px 16px; font: 600 .95rem var(--font-body); cursor: pointer; background: var(--red); color: #fff; align-self: flex-start; text-decoration: none; display: inline-block; }
+.btn.ghost { background: var(--chip); color: var(--fg); }
+.btn:disabled { opacity: .5; cursor: default; }
+.linkbtn { border: 0; background: none; color: var(--muted); font: 500 .85rem var(--font-body); text-decoration: underline; cursor: pointer; padding: 4px; align-self: center; }
+.status { font-size: .85rem; color: var(--muted); text-align: center; margin: 0; }
+.status.err { color: var(--red); }
+
+.search { width: 100%; font: 16px var(--font-body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 12px 40px; }
+.search-wrap { position: relative; }
+.search-wrap svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.tform { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.tform h3 { margin: 0; font: 700 1.05rem var(--font-display); }
+.tform .file { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); font-weight: 500; }
+.field input { font: 16px var(--font-body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; width: 100%; min-width: 0; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.tickets { display: flex; flex-direction: column; gap: 10px; }
+.tcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; grid-template-columns: 72px 1fr; gap: 12px; padding: 10px; align-items: start; }
+.thumb { width: 72px; height: 72px; border-radius: 8px; background: var(--chip); overflow: hidden; display: grid; place-items: center; color: var(--muted); font: 800 .8rem var(--font-display); letter-spacing: .08em; text-decoration: none; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb.pdf { background: var(--navy); color: var(--navy-fg); }
+.tinfo { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tname { font-weight: 600; overflow-wrap: anywhere; }
+.twhen { font-size: .85rem; font-variant-numeric: tabular-nums; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.badge { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 2px 7px; border-radius: 99px; background: var(--red); color: #fff; }
+.badge.soft { background: var(--chip); color: var(--muted); }
+.tnote { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+.tactions { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.tactions .btn { padding: 7px 12px; font-size: .85rem; }
+
+.addbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--line);
+  padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.addbar form, .addbar .tbar { max-width: 560px; margin: 0 auto; display: flex; gap: 8px; }
+.addbar select, .addbar input[type="text"] { font: 16px var(--font-body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.addbar select { flex: none; width: 108px; }
+.addbar input[type="text"] { flex: 1; min-width: 0; }
+.addbar form button { flex: none; width: 46px; border: 0; border-radius: 10px; background: var(--red); color: #fff; font-size: 1.5rem; cursor: pointer; }
+.addbar button:disabled { opacity: .45; cursor: default; }
+.tbar .btn { flex: 1; text-align: center; align-self: stretch; padding: 13px; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="ticket">
+    <div class="route"><span class="code">ITA</span><span class="arrow">→</span><span class="code">LON</span></div>
+    <div class="route-sub">La nostra lista per Londra</div>
+    <div class="progress-row">
+      <div class="bar" aria-hidden="true"><span id="bar"></span></div>
+      <div class="count" id="count">0 / 0 fatte</div>
+    </div>
+  </header>
+
+  <!-- Configurazione mancante -->
+  <div class="card" id="setupView" hidden>
+    <strong>Manca la configurazione</strong>
+    <span>Apri il file <code>config.js</code> e incolla l'indirizzo e la chiave del progetto Supabase, come spiegato in LEGGIMI.md.</span>
+  </div>
+
+  <!-- Accesso -->
+  <form class="card" id="loginView" hidden autocomplete="on">
+    <strong>Entra nella lista</strong>
+    <span>Usa l'email e la password create per te su Supabase. Resterai collegato su questo telefono.</span>
+    <label class="field">Email <input type="email" id="lEmail" autocomplete="username" required></label>
+    <label class="field">Password <input type="password" id="lPass" autocomplete="current-password" required></label>
+    <button class="btn" type="submit" id="lBtn">Entra</button>
+  </form>
+
+  <!-- Nome -->
+  <form class="card" id="nameView" hidden autocomplete="off">
+    <strong>Come ti chiami?</strong>
+    <span>Serve per mostrare chi ha aggiunto o spuntato qualcosa.</span>
+    <label class="field">Nome <input type="text" id="nName" maxlength="30" required></label>
+    <button class="btn" type="submit">Salva</button>
+  </form>
+
+  <div id="appView" class="view" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tabLista" type="button" aria-selected="true">Cose da fare<span class="n" id="nLista"></span></button>
+      <button class="tab" role="tab" id="tabBiglietti" type="button" aria-selected="false">Biglietti<span class="n" id="nBiglietti"></span></button>
+    </div>
+
+    <section class="view" id="viewList">
+      <nav class="chips" id="chips" aria-label="Categorie"></nav>
+      <div class="toolbar"><label><input type="checkbox" id="hideDone"> Nascondi le cose fatte</label></div>
+      <div id="list"></div>
+    </section>
+
+    <section class="view" id="viewTickets" hidden>
+      <form class="tform" id="ticketForm" hidden autocomplete="off">
+        <h3>Nuovo biglietto</h3>
+        <div class="file" id="tFile"></div>
+        <label class="field">Nome dell'attrazione <input type="text" id="tName" maxlength="120" placeholder="Es. London Eye" required></label>
+        <div class="row2">
+          <label class="field">Giorno <input type="date" id="tDate"></label>
+          <label class="field">Ora <input type="time" id="tTime"></label>
+        </div>
+        <label class="field">Nota (facoltativa) <input type="text" id="tNote" maxlength="200" placeholder="Es. ingresso dal lato del fiume"></label>
+        <div class="actions">
+          <button class="btn" type="submit" id="tSave">Salva biglietto</button>
+          <button class="btn ghost" type="button" id="tCancel">Annulla</button>
+        </div>
+      </form>
+      <div class="search-wrap">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg>
+        <input class="search" type="search" id="tSearch" placeholder="Cerca un biglietto…" aria-label="Cerca un biglietto">
+      </div>
+      <div class="tickets" id="tickets"></div>
+    </section>
+
+    <button class="linkbtn" type="button" id="logout">Esci da questo telefono</button>
+  </div>
+
+  <p class="status" id="status" hidden></p>
+</div>
+
+<div class="addbar" id="addbar" hidden>
+  <form id="addForm" autocomplete="off">
+    <select id="addCat" aria-label="Categoria"></select>
+    <input id="addText" type="text" placeholder="Aggiungi qualcosa…" maxlength="200" aria-label="Nuova voce">
+    <button type="submit" id="addBtn" aria-label="Aggiungi">+</button>
+  </form>
+  <div class="tbar" id="ticketBar" hidden>
+    <button class="btn" type="button" id="tPick">Carica un biglietto</button>
+    <input type="file" id="tFileInput" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" hidden>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const CATS = [
+  { id: "prima", label: "Prima di partire" },
+  { id: "valigia", label: "Valigia" },
+  { id: "vedere", label: "Da vedere" },
+  { id: "mangiare", label: "Da mangiare" },
+  { id: "altro", label: "Altro" },
+];
+const SUGGESTIONS = [
+  ["prima", "Controllare scadenza passaporto"], ["prima", "Compilare la ETA per il Regno Unito"],
+  ["prima", "Stampare o salvare le carte d'imbarco"], ["valigia", "Adattatore presa tipo G"],
+  ["valigia", "Ombrello pieghevole"], ["valigia", "Caricabatterie e power bank"],
+  ["vedere", "Camden Market"], ["vedere", "Tramonto da Primrose Hill"], ["vedere", "Borough Market"],
+  ["mangiare", "Fish and chips"], ["mangiare", "Sunday roast in un pub"], ["mangiare", "Afternoon tea"],
+];
+const OK_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"];
+const BUCKET = "biglietti";
+
+const $ = id => document.getElementById(id);
+const cfg = window.LONDRA_CONFIG || {};
+const configured = !!(cfg.SUPABASE_URL && cfg.SUPABASE_KEY && !cfg.SUPABASE_URL.includes("XXXX") && !cfg.SUPABASE_KEY.startsWith("INCOLLA"));
+const sb = configured && window.supabase ? window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
+
+let me = null;            // { id, name }
+let items = [], tickets = [];
+let filter = "tutte", hideDone = false, tab = "lista";
+let pendingDelete = null, pendingTicketDelete = null;
+let tQuery = "", pendingFile = null, uploading = false;
+let channel = null;
+const signed = {};        // path -> { url, exp }
+
+try { hideDone = localStorage.getItem("hideDone") === "1"; filter = localStorage.getItem("filter") || "tutte"; } catch (e) {}
+$("hideDone").checked = hideDone;
+for (const c of CATS) { const o = document.createElement("option"); o.value = c.id; o.textContent = c.label; $("addCat").appendChild(o); }
+
+function setStatus(msg, err) { const s = $("status"); s.textContent = msg || ""; s.hidden = !msg; s.classList.toggle("err", !!err); }
+function show(view) {
+  for (const v of ["setupView", "loginView", "nameView", "appView"]) $(v).hidden = v !== view;
+  $("addbar").hidden = view !== "appView";
+}
+
+/* ---------- Schede ---------- */
+function setTab(t, fromHash) {
+  tab = t === "biglietti" ? "biglietti" : "lista";
+  $("viewList").hidden = tab !== "lista";
+  $("viewTickets").hidden = tab !== "biglietti";
+  $("addForm").hidden = tab !== "lista";
+  $("ticketBar").hidden = tab !== "biglietti";
+  $("tabLista").setAttribute("aria-selected", String(tab === "lista"));
+  $("tabBiglietti").setAttribute("aria-selected", String(tab === "biglietti"));
+  if (!fromHash) { try { history.replaceState(null, "", tab === "biglietti" ? "#biglietti" : location.pathname + location.search); } catch (e) {} }
+}
+$("tabLista").onclick = () => setTab("lista");
+$("tabBiglietti").onclick = () => setTab("biglietti");
+window.addEventListener("hashchange", () => setTab(location.hash.slice(1), true));
+setTab(location.hash.slice(1), true);
+
+/* ---------- Lista ---------- */
+const CHECK_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : "";
+const who = (id, name) => id && me && id === me.id ? "te" : (name || "");
+
+function renderChips() {
+  const chips = $("chips"); chips.textContent = "";
+  for (const c of [{ id: "tutte", label: "Tutte" }, ...CATS]) {
+    const n = c.id === "tutte" ? items.length : items.filter(i => i.cat === c.id).length;
+    if (c.id !== "tutte" && n === 0 && filter !== c.id) continue;
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", String(filter === c.id)); b.append(c.label);
+    const s = document.createElement("span"); s.className = "n"; s.textContent = n; b.append(s);
+    b.onclick = () => { filter = c.id; try { localStorage.setItem("filter", filter); } catch (e) {} if (c.id !== "tutte") $("addCat").value = c.id; render(); };
+    chips.appendChild(b);
+  }
+}
+
+function render() {
+  const done = items.filter(i => i.done).length;
+  $("count").textContent = `${done} / ${items.length} fatte`;
+  $("bar").style.width = items.length ? (done / items.length * 100) + "%" : "0";
+  $("nLista").textContent = items.length || "";
+  renderChips();
+  const list = $("list"); list.textContent = "";
+  let shown = items.filter(i => filter === "tutte" || i.cat === filter);
+  if (hideDone) shown = shown.filter(i => !i.done);
+
+  if (!items.length) {
+    const e = document.createElement("div"); e.className = "empty";
+    e.innerHTML = "<strong>La lista è vuota</strong><span>Scrivi qualcosa nella barra in basso e premi +. Oppure parti da qualche idea classica per Londra e poi cancella quello che non serve.</span>";
+    const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = "Aggiungi 12 idee per Londra";
+    b.onclick = addSuggestions; e.appendChild(b); list.appendChild(e); return;
+  }
+  if (!shown.length) {
+    const e = document.createElement("div"); e.className = "empty";
+    e.innerHTML = hideDone ? "<strong>Tutto fatto qui 🎉</strong><span>Togli “Nascondi le cose fatte” per rivederle.</span>" : "<strong>Niente in questa categoria</strong>";
+    list.appendChild(e); return;
+  }
+  for (const c of CATS) {
+    const rows = shown.filter(i => (CATS.some(x => x.id === i.cat) ? i.cat : "altro") === c.id);
+    if (!rows.length) continue;
+    const sec = document.createElement("section"); sec.className = "group";
+    if (filter === "tutte") { const h = document.createElement("h2"); h.textContent = c.label; sec.appendChild(h); }
+    const ul = document.createElement("ul"); ul.className = "list";
+    rows.sort((a, b) => (a.done - b.done) || a.created_at.localeCompare(b.created_at));
+    for (const it of rows) ul.appendChild(rowEl(it));
+    sec.appendChild(ul); list.appendChild(sec);
+  }
+}
+
+function rowEl(it) {
+  const li = document.createElement("li"); li.className = "item" + (it.done ? " done" : "");
+  const cb = document.createElement("button"); cb.className = "check"; cb.type = "button";
+  cb.setAttribute("role", "checkbox"); cb.setAttribute("aria-checked", String(!!it.done));
+  cb.setAttribute("aria-label", it.text); cb.innerHTML = CHECK_SVG; cb.onclick = () => toggle(it);
+  const body = document.createElement("div"); body.className = "body"; body.onclick = () => toggle(it);
+  const t = document.createElement("div"); t.className = "text"; t.textContent = it.text; body.appendChild(t);
+  const name = it.done ? who(it.done_by, it.done_by_name) : who(it.added_by, it.added_by_name);
+  if (it.done || name) {
+    const m = document.createElement("div"); m.className = "meta";
+    m.textContent = it.done ? `Fatto${it.done_at ? " il " + fmtDate(it.done_at) : ""}${name ? " da " + name : ""}` : `Aggiunto da ${name}`;
+    body.appendChild(m);
+  }
+  li.append(cb, body, deleteBtn(it.id, it.text, () => removeItem(it), "item"));
+  return li;
+}
+
+function deleteBtn(id, label, onConfirm, kind) {
+  const isPending = () => (kind === "item" ? pendingDelete : pendingTicketDelete) === id;
+  const setPending = v => { if (kind === "item") pendingDelete = v; else pendingTicketDelete = v; };
+  const rerender = () => (kind === "item" ? render() : renderTickets());
+  const del = document.createElement("button"); del.className = "del"; del.type = "button";
+  const confirming = isPending();
+  del.textContent = confirming ? "Elimina" : "×"; del.classList.toggle("confirm", confirming);
+  del.setAttribute("aria-label", confirming ? "Conferma eliminazione" : "Elimina " + label);
+  del.onclick = () => {
+    if (isPending()) { setPending(null); onConfirm(); }
+    else { setPending(id); rerender(); setTimeout(() => { if (isPending()) { setPending(null); rerender(); } }, 3000); }
+  };
+  return del;
+}
+
+function failed(error) {
+  console.error(error);
+  const msg = (error && (error.message || error.error)) || "";
+  if (/row-level security|permission|not authorized|unauthorized/i.test(msg)) setStatus("Questo account non ha accesso alla lista. Controlla l'email in supabase.sql.", true);
+  else setStatus("Modifica non salvata. Controlla la connessione e riprova.", true);
+}
+
+async function loadItems() {
+  const { data, error } = await sb.from("items").select("*").order("created_at");
+  if (error) return failed(error);
+  items = data; render();
+}
+async function toggle(it) {
+  const now = !it.done;
+  const patch = now ? { done: true, done_at: new Date().toISOString(), done_by: me.id, done_by_name: me.name }
+                    : { done: false, done_at: null, done_by: null, done_by_name: null };
+  Object.assign(it, patch); render();
+  const { error } = await sb.from("items").update(patch).eq("id", it.id);
+  if (error) { failed(error); loadItems(); }
+}
+async function removeItem(it) {
+  items = items.filter(x => x.id !== it.id); render();
+  const { error } = await sb.from("items").delete().eq("id", it.id);
+  if (error) { failed(error); loadItems(); }
+}
+let addingSuggestions = false;
+async function addSuggestions() {
+  if (addingSuggestions) return; addingSuggestions = true;
+  const { error } = await sb.from("items").insert(SUGGESTIONS.map(([cat, text]) => ({ cat, text, added_by_name: me.name })));
+  addingSuggestions = false;
+  if (error) failed(error); else loadItems();
+}
+$("addForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const input = $("addText"); const text = input.value.trim().slice(0, 200);
+  if (!text) return;
+  input.value = ""; input.focus();
+  const { error } = await sb.from("items").insert({ text, cat: $("addCat").value, added_by_name: me.name });
+  if (error) { input.value = text; failed(error); } else { setStatus(""); loadItems(); }
+});
+$("hideDone").addEventListener("change", e => { hideDone = e.target.checked; try { localStorage.setItem("hideDone", hideDone ? "1" : "0"); } catch (x) {} render(); });
+
+/* ---------- Biglietti ---------- */
+const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+function dayStr(offset) {
+  const d = new Date(); d.setDate(d.getDate() + offset);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function fmtTicketDate(t) {
+  const [y, m, d] = t.date.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" }) + (t.time ? " · " + t.time : "");
+}
+
+async function ensureSigned(paths) {
+  const now = Date.now();
+  const missing = paths.filter(p => !signed[p] || signed[p].exp < now + 60000);
+  if (!missing.length) return false;
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUrls(missing, 3600);
+  if (error) { console.error(error); return false; }
+  for (const r of data) if (r.signedUrl) signed[r.path] = { url: r.signedUrl, exp: now + 3600 * 1000 };
+  return true;
+}
+
+function renderTickets() {
+  $("nBiglietti").textContent = tickets.length || "";
+  const box = $("tickets"); box.textContent = "";
+  const q = norm(tQuery.trim());
+  const shown = tickets
+    .filter(t => !q || norm([t.name, t.note, t.file_name].join(" ")).includes(q))
+    .sort((a, b) => {
+      const ka = a.date ? a.date + (a.time || "") : "9999", kb = b.date ? b.date + (b.time || "") : "9999";
+      return ka < kb ? -1 : ka > kb ? 1 : a.created_at.localeCompare(b.created_at);
+    });
+  if (!tickets.length) {
+    const e = document.createElement("div"); e.className = "empty";
+    e.innerHTML = "<strong>Ancora nessun biglietto</strong><span>Premi “Carica un biglietto” in basso e scegli la foto, lo screenshot o il PDF del biglietto. Così li ritrovate tutti qui, anche a Londra.</span>";
+    box.appendChild(e); return;
+  }
+  if (!shown.length) {
+    const e = document.createElement("div"); e.className = "empty";
+    const s = document.createElement("strong"); s.textContent = `Nessun biglietto per “${tQuery.trim()}”`;
+    e.appendChild(s); box.appendChild(e); return;
+  }
+  const today = dayStr(0), tomorrow = dayStr(1);
+  for (const t of shown) {
+    const url = signed[t.path] ? signed[t.path].url : "#";
+    const card = document.createElement("article"); card.className = "tcard";
+    const thumb = document.createElement("a"); thumb.className = "thumb"; thumb.href = url; thumb.target = "_blank"; thumb.rel = "noopener";
+    thumb.setAttribute("aria-label", "Apri " + t.name);
+    if ((t.content_type || "").startsWith("image/") && url !== "#") {
+      const img = document.createElement("img"); img.src = url; img.alt = ""; img.loading = "lazy";
+      img.onerror = () => { img.remove(); thumb.textContent = "FOTO"; };
+      thumb.appendChild(img);
+    } else if ((t.content_type || "") === "application/pdf") { thumb.classList.add("pdf"); thumb.textContent = "PDF"; }
+    else thumb.textContent = "FOTO";
+
+    const info = document.createElement("div"); info.className = "tinfo";
+    const n = document.createElement("div"); n.className = "tname"; n.textContent = t.name; info.appendChild(n);
+    if (t.date) {
+      const w = document.createElement("div"); w.className = "twhen"; w.append(fmtTicketDate(t));
+      const label = t.date === today ? "Oggi" : t.date === tomorrow ? "Domani" : t.date < today ? "Passato" : "";
+      if (label) { const b = document.createElement("span"); b.className = "badge" + (label === "Passato" ? " soft" : ""); b.textContent = label; w.appendChild(b); }
+      info.appendChild(w);
+    }
+    if (t.note) { const no = document.createElement("div"); no.className = "tnote"; no.textContent = t.note; info.appendChild(no); }
+    const by = who(t.added_by, t.added_by_name);
+    if (by) { const m = document.createElement("div"); m.className = "meta"; m.textContent = "Caricato da " + by; info.appendChild(m); }
+    const act = document.createElement("div"); act.className = "tactions";
+    const open = document.createElement("a"); open.className = "btn"; open.href = url; open.target = "_blank"; open.rel = "noopener"; open.textContent = "Apri biglietto";
+    act.append(open, deleteBtn(t.id, t.name, () => removeTicket(t), "ticket"));
+    info.appendChild(act);
+    card.append(thumb, info); box.appendChild(card);
+  }
+}
+
+async function loadTickets() {
+  const { data, error } = await sb.from("tickets").select("*").order("created_at");
+  if (error) return failed(error);
+  tickets = data; renderTickets();
+  if (await ensureSigned(tickets.map(t => t.path))) renderTickets();
+}
+
+$("tSearch").addEventListener("input", e => { tQuery = e.target.value; renderTickets(); });
+$("tPick").onclick = () => $("tFileInput").click();
+$("tFileInput").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  if (!OK_TYPES.includes(f.type)) { setStatus("Formato non supportato. Usa una foto JPG/PNG, uno screenshot o un PDF.", true); return; }
+  if (f.size > 20 * 1024 * 1024) { setStatus("Il file è troppo grande (massimo 20 MB).", true); return; }
+  pendingFile = f; setStatus("");
+  $("tFile").textContent = "File: " + f.name;
+  $("tName").value = f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").slice(0, 120);
+  $("tDate").value = ""; $("tTime").value = ""; $("tNote").value = "";
+  $("ticketForm").hidden = false; $("tName").focus(); $("tName").select();
+});
+$("tCancel").onclick = () => { pendingFile = null; $("ticketForm").hidden = true; };
+$("ticketForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  if (!pendingFile || uploading) return;
+  const name = $("tName").value.trim().slice(0, 120);
+  if (!name) return;
+  uploading = true; $("tSave").disabled = true; $("tSave").textContent = "Caricamento…";
+  const ext = pendingFile.type === "application/pdf" ? "pdf" : pendingFile.type.split("/")[1].replace("jpeg", "jpg");
+  const path = crypto.randomUUID() + "." + ext;
+  const up = await sb.storage.from(BUCKET).upload(path, pendingFile, { contentType: pendingFile.type, upsert: false });
+  if (up.error) { failed(up.error); }
+  else {
+    const { error } = await sb.from("tickets").insert({
+      name, date: $("tDate").value || null, time: $("tTime").value || null, note: $("tNote").value.trim().slice(0, 200) || null,
+      path, content_type: pendingFile.type, file_name: pendingFile.name.slice(0, 200), added_by_name: me.name,
+    });
+    if (error) { await sb.storage.from(BUCKET).remove([path]); failed(error); }
+    else { pendingFile = null; $("ticketForm").hidden = true; setStatus(""); loadTickets(); }
+  }
+  uploading = false; $("tSave").disabled = false; $("tSave").textContent = "Salva biglietto";
+});
+async function removeTicket(t) {
+  tickets = tickets.filter(x => x.id !== t.id); renderTickets();
+  const { error } = await sb.from("tickets").delete().eq("id", t.id);
+  if (error) { failed(error); return loadTickets(); }
+  await sb.storage.from(BUCKET).remove([t.path]);
+}
+
+/* ---------- Accesso ---------- */
+$("loginView").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  $("lBtn").disabled = true; setStatus("");
+  const { error } = await sb.auth.signInWithPassword({ email: $("lEmail").value.trim(), password: $("lPass").value });
+  $("lBtn").disabled = false;
+  if (error) setStatus("Email o password non corrette.", true);
+});
+$("nameView").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const nome = $("nName").value.trim().slice(0, 30);
+  if (!nome) return;
+  const { data, error } = await sb.auth.updateUser({ data: { nome } });
+  if (error) return failed(error);
+  enter(data.user);
+});
+$("logout").onclick = () => sb.auth.signOut();
+
+const timers = {};
+function refresh(which) {
+  clearTimeout(timers[which]);
+  timers[which] = setTimeout(() => (which === "items" ? loadItems() : loadTickets()), 250);
+}
+
+function enter(user) {
+  const nome = user.user_metadata && user.user_metadata.nome;
+  if (!nome) { show("nameView"); $("nName").focus(); return; }
+  me = { id: user.id, name: nome };
+  show("appView"); setStatus("");
+  loadItems(); loadTickets();
+  if (!channel) {
+    channel = sb.channel("londra")
+      .on("postgres_changes", { event: "*", schema: "public", table: "items" }, () => refresh("items"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => refresh("tickets"))
+      .subscribe();
+  }
+}
+
+function leave() {
+  me = null; items = []; tickets = [];
+  if (channel) { sb.removeChannel(channel); channel = null; }
+  render(); renderTickets(); show("loginView");
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && me) { refresh("items"); refresh("tickets"); }
+});
+
+render(); renderTickets();
+if (!sb) { show("setupView"); }
+else {
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session && session.user) { if (!me || me.id !== session.user.id) setTimeout(() => enter(session.user), 0); }
+    else if (event === "SIGNED_OUT" || event === "INITIAL_SESSION") leave();
+  });
+}
+</script>
+</body>
+</html>
