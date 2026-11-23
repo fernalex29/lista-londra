@@ -207,7 +207,10 @@ details.guard summary { cursor: pointer; color: var(--red); font-weight: 600; }
 .empty { border-style: solid; }
 
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* Nessuna animazione sui riquadri: i cambi sono istantanei (la neve è a parte, su canvas) */
+*, *::before, *::after { transition: none !important; animation: none !important; }
+* { -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: auto; }
 </style>
 </head>
 <body>
