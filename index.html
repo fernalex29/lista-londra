@@ -387,7 +387,7 @@ let people = [];          // [{ id, name }]
 function sections() {
   const s = [{ id: "prima", label: "Prima di partire", cat: "prima", owner: null }];
   for (const p of people) s.push({ id: "valigia:" + p.id, label: "Valigia di " + p.name, cat: "valigia", owner: p.id });
-  s.push({ id: "valigia", label: people.length ? "Valigia in comune" : "Valigia", cat: "valigia", owner: null });
+  s.push({ id: "valigia", label: people.length ? "Cose in comune" : "Valigia", cat: "valigia", owner: null });
   for (const c of CATS) if (c.id !== "prima" && c.id !== "valigia") s.push({ id: c.id, label: c.label, cat: c.id, owner: null });
   return s;
 }
